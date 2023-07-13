@@ -34,7 +34,8 @@ ALLOWED_HOSTS = []
 
 
 DJANGO_APPS = [
-    "jazzmin",  # not a django app but a custom django admin library
+    # "jazzmin",  # not a django app but a custom django admin library
+    "jet",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -133,8 +134,12 @@ WSGI_APPLICATION = 'Gestore.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'gestore',
+        'USER': 's13g',
+        'PASSWORD': 'S13G2£',
+        'HOST': 'localhost',
+        'PORT': 3306
     }
 }
 # mongo db to be used
