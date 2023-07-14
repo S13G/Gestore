@@ -1,0 +1,7 @@
+TENANT_ACCOUNT = "TA"
+LANDLORD_ACCOUNT = "LA"
+
+ACCOUNT_TYPE = (
+    (TENANT_ACCOUNT, "Tenant"),
+    (LANDLORD_ACCOUNT, "Landlord"),
+)

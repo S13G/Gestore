@@ -12,9 +12,11 @@ class Command(BaseCommand):
         if not User.objects.filter(email=config('ADMIN_EMAIL')).exists():
             User.objects.create_superuser(
                     email=config('ADMIN_EMAIL'),
+                    phone_number=+12345678,
                     first_name='John',
                     last_name='Doe',
                     password=config('ADMIN_PASSWORD')
             )
             print('Superuser has been created.')
-        print("Superuser already exists")
+        else:
+            print("Superuser already exists.")

@@ -11,12 +11,12 @@ https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
 from datetime import timedelta
-from decouple import config
 from pathlib import Path
+
+from decouple import config
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
-
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -28,7 +28,6 @@ SECRET_KEY = config("SECRET_KEY")
 DEBUG = True
 
 ALLOWED_HOSTS = []
-
 
 # Application definition
 
@@ -128,6 +127,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Gestore.wsgi.application'
 
+AUTH_USER_MODEL = 'core.User'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
@@ -162,7 +162,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/4.2/topics/i18n/
 
@@ -173,7 +172,6 @@ TIME_ZONE = 'UTC'
 USE_I18N = True
 
 USE_TZ = True
-
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.2/howto/static-files/
@@ -202,7 +200,6 @@ MEDIA_ROOT = BASE_DIR / "static/media"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 
 # Email settings for SSL(Mainly for development and tests)
@@ -225,3 +222,25 @@ TREBLLE_INFO = {
     'api_key': config('TREBLLE_API_KEY'),
     'project_id': config('TREBLLE_PROJECT_ID')
 }
+
+JET_SIDE_MENU_COMPACT = True
+
+JET_DEFAULT_THEME = 'light-blue'
+
+JET_SIDE_MENU_CUSTOM_APPS = [
+    (
+        'auth',
+        [
+            'Group',
+        ]
+    ),
+    (
+        'core',
+        [
+            'User',
+        ]
+    ),
+
+]
+
+JET_CHANGE_FORM_SIBLING_LINKS = True
