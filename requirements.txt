@@ -9,7 +9,6 @@ colorama==0.4.6
 creategitignore==0.2.1
 dj-database-url==2.0.0
 Django==4.2.3
-django-4-jet==1.0.9
 django-cloudinary-storage==0.3.0
 django-countries==7.5.1
 django-debug-toolbar==4.1.0
