@@ -3,6 +3,7 @@ import threading
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from django.utils.html import strip_tags
 
 
 class EmailThread(threading.Thread):
@@ -14,28 +15,20 @@ class EmailThread(threading.Thread):
         self.email.send()
 
 
-def send_email(
-        subject: str,
-        recipients: list,
-        message: str = None,
-        context: dict = {},
-        template: str = None,
-):
+def send_email(subject: str, recipients: list, message: str = None, context=None, template: str = None):
+    if context is None:
+        context = {}
     email = EmailMultiAlternatives(
             subject=subject,
-            body=message,
+            body=message or strip_tags(render_to_string(template, context)),
             from_email=settings.EMAIL_HOST_USER,
-            to=[email for email in recipients],
+            to=recipients
     )
 
-    # if template:
-    html_content = render_to_string(template, context)
+    if template:
+        email.attach_alternative(render_to_string(template, context), "text/html")
 
-    email.attach_alternative(html_content, "text/html")
-
-    # start a thread for each email
     try:
         EmailThread(email).start()
-
     except ConnectionError:
-        print("Something went wrong \nCouldn't send Email")
+        print("Something went wrong\nCouldn't send email")

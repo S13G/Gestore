@@ -24,11 +24,15 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=20, validators=[validate_phone_number])
     phone_verified = models.BooleanField(default=False)
     email_modified_time = models.DateTimeField(default=None, null=True, editable=False)
+    updated = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["phone_number", "first_name", "last_name"]
 
     objects = CustomUserManager()
+
+    class Meta:
+        ordering = ('-date_joined',)
 
     def __str__(self):
         return self.get_full_name()
@@ -45,3 +49,13 @@ class User(AbstractUser):
         # Save the instance
         super().save(*args, **kwargs)
 
+
+class OTPSecret(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="otsecret", null=True)
+    secret = models.CharField(max_length=255, null=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        abstract = True
+        ordering = ('-created',)

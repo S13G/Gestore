@@ -1,5 +1,4 @@
 from rest_framework.exceptions import APIException
-from rest_framework.response import Response
 
 
 class CustomResponse(APIException):
@@ -18,30 +17,15 @@ class CustomResponse(APIException):
         500: "Something went wrong",
     }
 
-    def __init__(self, code: int, data: dict = None, message: str = None):
+    def __init__(self, code: int, detail: str = None, data: dict = None):
         self.code = code
+        self.detail = detail or self.ALL_ERROR_CODES.get(code)
         self.data = data or {}
-        self.message = message
 
-    @property
-    def status(self):
-        return "success" if self.code in self.ALL_SUCCESS_CODES else "failed"
-
-    def get_message(self):
-        if self.message is None:
-            if self.code in self.ALL_SUCCESS_CODES:
-                self.message = self.ALL_SUCCESS_CODES[self.code]
-            elif self.code in self.ALL_ERROR_CODES:
-                self.message = self.ALL_ERROR_CODES[self.code]
-        return self.message
-
-    def to_response(self):
-        return Response(
-                {
-                    "code": self.code,
-                    "data": self.data,
-                    "message": self.get_message(),
-                    "status": self.status,
-                },
-                status=self.code,
-        )
+    def get_full_details(self):
+        return {
+            "message": self.detail,
+            "code": self.code,
+            "data": self.data,
+            "status": "success" if self.code in self.ALL_SUCCESS_CODES else "failed",
+        }
