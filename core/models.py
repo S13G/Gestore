@@ -44,3 +44,4 @@ class User(AbstractUser):
 
         # Save the instance
         super().save(*args, **kwargs)
+

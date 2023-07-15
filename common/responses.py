@@ -1,7 +1,8 @@
+from rest_framework.exceptions import APIException
 from rest_framework.response import Response
 
 
-class CustomResponse:
+class CustomResponse(APIException):
     ALL_SUCCESS_CODES = {
         200: "Fetched successfully",
         201: "Added successfully",
@@ -12,7 +13,7 @@ class CustomResponse:
     ALL_ERROR_CODES = {
         404: "Resource not found",
         400: "Validation error",
-        401: "Invalid Access Token",
+        401: "Invalid Access",
         403: "Access denied",
         500: "Something went wrong",
     }
