@@ -222,7 +222,6 @@ TREBLLE_INFO = {
     'project_id': config('TREBLLE_PROJECT_ID')
 }
 
-
 JAZZMIN_SETTINGS = {
     "site_brand": "Gestore ADMIN",
     # title of the window (Will default to current_admin_site.site_title if absent or None)

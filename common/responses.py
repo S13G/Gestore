@@ -1,7 +1,7 @@
-from rest_framework.exceptions import APIException
+from rest_framework.response import Response
 
 
-class CustomResponse(APIException):
+class CustomResponse:
     ALL_SUCCESS_CODES = {
         200: "Fetched successfully",
         201: "Added successfully",
@@ -12,20 +12,22 @@ class CustomResponse(APIException):
     ALL_ERROR_CODES = {
         404: "Resource not found",
         400: "Validation error",
-        401: "Invalid Access",
+        401: "Authorization credentials not provided",
         403: "Access denied",
         500: "Something went wrong",
+        409: "Already exists"
     }
 
-    def __init__(self, code: int, detail: str = None, data: dict = None):
-        self.code = code
-        self.detail = detail or self.ALL_ERROR_CODES.get(code)
-        self.data = data or {}
+    @classmethod
+    def generate_response(cls, code: int, data: dict = None, msg=None):
+        if code in cls.ALL_SUCCESS_CODES:
+            status = "success"
+            msg = cls.ALL_SUCCESS_CODES[code] if msg is None else msg
+        else:
+            status = "error"
+            if code in cls.ALL_ERROR_CODES:
+                msg = cls.ALL_ERROR_CODES[code] if msg is None else msg
 
-    def get_full_details(self):
-        return {
-            "message": self.detail,
-            "code": self.code,
-            "data": self.data,
-            "status": "success" if self.code in self.ALL_SUCCESS_CODES else "failed",
-        }
+        return Response(
+            {"status_code": code, "data": data or {}, "msg": msg, "status": status}, status=code
+        )

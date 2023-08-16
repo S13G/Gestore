@@ -1,0 +1,11 @@
+
+    def save(self, *args, **kwargs):
+        # Check if the email has been changed and if the instance has been modified
+        if self.email_changed and not self.email_modified_time:
+            # Update the 'is_modified' field with the current timestamp
+            self.is_modified = timezone.now()
+        elif self.email_changed and self.email_modified_time + timedelta(days=10) <= timezone.now():
+            # If the email was changed more than 10 days ago, reset the 'email_changed' flag to False
+            self.email_changed = False
+
+        super().save(*args, **kwargs)

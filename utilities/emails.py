@@ -15,7 +15,7 @@ class EmailThread(threading.Thread):
         self.email.send()
 
 
-def send_email(subject: str, recipients: list, message: str = None, context=None, template: str = None):
+def send_email(subject: str, recipients: list, message: str = None, context: dict = None, template: str = None):
     if context is None:
         context = {}
     email = EmailMultiAlternatives(
