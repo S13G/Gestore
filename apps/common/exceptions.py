@@ -23,5 +23,6 @@ class CustomEmailSerializer(sr.Serializer):
         try:
             validate_email(value)
         except:
-            raise CustomValidation({"message": "Invalid email. Use the correct email format.", "status": "failed"})
+            raise CustomValidation(
+                {"code": 2, "message": "Invalid email. Use the correct email format.", "status": "failed"})
         return value

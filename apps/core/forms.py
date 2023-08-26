@@ -1,12 +1,10 @@
 # Account creation
 from django import forms
-from django.contrib.auth import get_user_model
 from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 
 from apps.core.choices import ACCOUNT_TYPE
-from apps.core.validators import validate_phone_number
-
-User = get_user_model()
+from apps.common.validators import validate_phone_number
+from apps.core.models import User
 
 
 class CustomUserCreationForm(UserCreationForm):

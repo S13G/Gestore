@@ -32,7 +32,7 @@ class Migration(migrations.Migration):
                 ('email_verified', models.BooleanField(default=False)),
                 ('email_changed', models.BooleanField(default=False)),
                 ('phone_number', models.CharField(max_length=20, validators=[
-                    apps.core.validators.validate_phone_number])),
+                    apps.common.validators.validate_phone_number])),
                 ('phone_verified', models.BooleanField(default=False)),
                 ('email_modified_time', models.DateTimeField(default=None, editable=False, null=True)),
                 ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),

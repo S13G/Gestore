@@ -7,15 +7,15 @@ from django.utils.translation import gettext_lazy as _
 from apps.common.models import BaseModel
 from apps.core.choices import ACCOUNT_TYPE
 from apps.core.managers import CustomUserManager
-from apps.core.validators import validate_phone_number
+from apps.common.validators import validate_phone_number
 
 
 # Create your models here.
 
 
 class User(AbstractUser):
-    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     username = None
+    id = models.UUIDField(primary_key=True, default=uuid4, editable=False)
     email = models.EmailField(_("Email address"), unique=True)
     account_type = models.CharField(max_length=15, choices=ACCOUNT_TYPE, default=None, null=True)
     email_verified = models.BooleanField(default=False)
@@ -46,3 +46,45 @@ class OTPSecret(BaseModel):
 
     def __str__(self):
         return self.user.get_full_name()
+
+
+class TenantProfile(BaseModel):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="tenant_profile")
+    avatar = models.ImageField(upload_to="tenant_avatars")
+    date_of_birth = models.DateField()
+    emergency_phone_number = models.CharField(max_length=20, validators=[validate_phone_number])
+    occupation = models.CharField(max_length=255)
+    address = models.CharField(max_length=255)
+
+    @property
+    def full_name(self):
+        return self.user.get_full_name()
+
+    def profile_image(self):
+        if self.avatar:
+            return self.avatar.url
+        return None
+
+    def __str__(self):
+        return self.user.get_full_name()
+
+
+class LandLordProfile(BaseModel):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="landlord_profile")
+    avatar = models.ImageField(upload_to="LL_avatars")
+    date_of_birth = models.DateField()
+    occupation = models.CharField(max_length=255)
+
+    @property
+    def full_name(self):
+        return self.user.get_full_name()
+
+    def profile_image(self):
+        if self.avatar:
+            return self.avatar.url
+        return None
+
+    def __str__(self):
+        return self.user.get_full_name()
+
+
