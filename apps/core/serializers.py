@@ -1,8 +1,8 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers as sr
 
-from common.exceptions import CustomValidation, CustomEmailSerializer
-from core.choices import ACCOUNT_TYPE
+from apps.common.exceptions import CustomValidation, CustomEmailSerializer
+from apps.core.choices import ACCOUNT_TYPE
 
 User = get_user_model()
 
@@ -20,12 +20,18 @@ class RegisterSerializer(CustomEmailSerializer):
         if not value.startswith('+'):
             raise CustomValidation(
                 {
+                    "code": 2,
                     "message": "Phone number must start with country code e.g. (+44).",
                     "status": "failed"
                 }
             )
         elif not value[1:].isdigit():
-            raise CustomValidation({"message": "Phone number must be digits.", "status": "failed"})
+            raise CustomValidation(
+                {
+                    "code": 2,
+                    "message": "Phone number must be digits.",
+                    "status": "failed"}
+            )
         return value
 
 

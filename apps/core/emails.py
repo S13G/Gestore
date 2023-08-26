@@ -2,7 +2,7 @@ import pyotp
 from django.http import Http404
 from rest_framework.generics import get_object_or_404
 
-from core.models import OTPSecret
+from apps.core.models import OTPSecret
 from utilities.emails import send_email
 
 

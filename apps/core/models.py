@@ -4,10 +4,10 @@ from django.contrib.auth.models import AbstractUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
-from common.models import BaseModel
-from core.choices import ACCOUNT_TYPE
-from core.managers import CustomUserManager
-from core.validators import validate_phone_number
+from apps.common.models import BaseModel
+from apps.core.choices import ACCOUNT_TYPE
+from apps.core.managers import CustomUserManager
+from apps.core.validators import validate_phone_number
 
 
 # Create your models here.
@@ -23,6 +23,7 @@ class User(AbstractUser):
     phone_number = models.CharField(max_length=20, validators=[validate_phone_number])
     phone_verified = models.BooleanField(default=False)
     email_modified_time = models.DateTimeField(default=None, null=True, editable=False)
+    is_landlord = models.BooleanField(default=False)
     updated = models.DateTimeField(auto_now=True)
 
     USERNAME_FIELD = "email"

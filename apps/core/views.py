@@ -8,9 +8,9 @@ from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
 
-from common.responses import CustomResponse
-from core.emails import send_otp_email
-from core.serializers import *
+from apps.common.responses import CustomResponse
+from apps.core.emails import send_otp_email
+from apps.core.serializers import *
 
 User = get_user_model()
 
@@ -226,7 +226,7 @@ class SendNewEmailVerificationCodeView(GenericAPIView):
         email = serializer.validated_data.get('email')
 
         if User.objects.filter(email=email).exists():
-            response_data = {"code": 409, "message": "Account with this email already exists"}
+            response_data = {"code": 3, "message": "Account with this email already exists"}
             return CustomResponse.generate_response(code=409, msg=response_data)
         else:
             send_otp_email(self.request.user, email)
@@ -273,7 +273,7 @@ class ChangeEmailView(GenericAPIView):
         user = self.request.user
 
         if user.email == new_email:
-            response_data = {"code": 409, "message": "You can't use your previous email"}
+            response_data = {"code": 3, "message": "You can't use your previous email"}
             return CustomResponse.generate_response(code=409, msg=response_data)
         elif not code or not user.otp_secret:
             response_data = {"code": 1, "message": "No OTP found for this account"}

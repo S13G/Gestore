@@ -23,7 +23,8 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 # Version 1 URLs
 urlpatterns_v1 = [
-    path("auth/", include("core.urls")),
+    path("auth/", include("apps.core.urls")),
+    path("profile/", include("apps.persona.urls"))
 ]
 
 urlpatterns = [
