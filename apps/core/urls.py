@@ -16,6 +16,9 @@ urlpatterns = [
         name="send_new_email_verification_code"
     ),
     path('change/email', views.ChangeEmailView.as_view(), name="change_email"),
+    path('login', views.LoginView.as_view(), name="log_in"),
+    path('logout', views.LogoutView.as_view(), name="logout"),
+    path('refresh/token', views.RefreshView.as_view(), name="refresh_token"),
 
 
 ]

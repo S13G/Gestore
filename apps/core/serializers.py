@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from rest_framework import serializers as sr
 
 from apps.common.exceptions import CustomValidation, CustomEmailSerializer
-from apps.core.choices import ACCOUNT_TYPE
 
 User = get_user_model()
 
@@ -12,7 +11,6 @@ class RegisterSerializer(CustomEmailSerializer):
     last_name = sr.CharField()
     email = sr.CharField()
     phone_number = sr.CharField(write_only=True)
-    account_type = sr.ChoiceField(choices=ACCOUNT_TYPE)
     password = sr.CharField()
 
     @staticmethod
@@ -51,3 +49,30 @@ class SendNewEmailVerificationCodeSerializer(CustomEmailSerializer):
 class ChangeEmailSerializer(CustomEmailSerializer):
     email = sr.CharField()
     otp = sr.IntegerField()
+
+
+class TenantProfileSerializer(sr.Serializer):
+    full_name = sr.CharField(source="user.get_full_name")
+    avatar = sr.ImageField()
+    email = sr.EmailField(source="user.email")
+    email_verified = sr.BooleanField(source="user.email_verified")
+    date_of_birth = sr.DateField()
+    phone_number = sr.CharField(source="user.phone_number")
+    emergency_phone_number = sr.CharField()
+    occupation = sr.CharField()
+    address = sr.CharField()
+
+
+class LandLordProfileSerializer(sr.Serializer):
+    full_name = sr.CharField(source="user.get_full_name")
+    avatar = sr.ImageField()
+    email = sr.EmailField(source="user.email")
+    email_verified = sr.BooleanField(source="user.email_verified")
+    phone_number = sr.CharField(source="user.phone_number")
+    date_of_birth = sr.DateField()
+    occupation = sr.CharField()
+
+
+class LoginSerializer(CustomEmailSerializer):
+    email = sr.CharField()
+    password = sr.CharField(write_only=True)

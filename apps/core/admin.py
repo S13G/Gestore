@@ -14,11 +14,8 @@ class CustomUserAdmin(UserAdmin):
         "first_name",
         "last_name",
         "email",
-        "account_type",
-        "phone_verified",
         "email_changed",
         "email_verified",
-        "phone_verified",
         "is_staff",
         "is_active",
 
@@ -40,7 +37,6 @@ class CustomUserAdmin(UserAdmin):
                     "first_name",
                     "last_name",
                     "email",
-                    "account_type",
                     "phone_number",
                     "password",
 
@@ -55,7 +51,6 @@ class CustomUserAdmin(UserAdmin):
                     "is_active",
                     "email_changed",
                     "email_verified",
-                    "phone_verified",
                     "groups",
                     "user_permissions"
                 )

@@ -1,15 +1,21 @@
 from datetime import timedelta
 
 import pyotp
+from django.contrib.auth import authenticate
 from django.db import transaction, IntegrityError
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.throttling import UserRateThrottle
+from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.serializers import TokenObtainSerializer, TokenBlacklistSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenBlacklistView, TokenRefreshView
 
 from apps.common.responses import CustomResponse
 from apps.core.emails import send_otp_email
+from apps.core.models import TenantProfile, LandLordProfile
 from apps.core.serializers import *
 
 User = get_user_model()
@@ -32,7 +38,6 @@ class RegisterView(GenericAPIView):
         - `last_name`: The user's last name.
         - `email`: The user's email address.
         - `phone_number`: The user's phone number.
-        - `account_type`: The type of account the user wants to create.
         - `password`: The user's password.
     
         If the registration is successful, the response will include the following data:
@@ -62,7 +67,7 @@ class RegisterView(GenericAPIView):
         send_otp_email(user)
         response_data = {
             "code": 0,
-            "message": "Registered successfully. Check email for verification code, verification code for phone will be sent after email has been verified",
+            "message": "Registered successfully. Check email for verification code",
         }
         return CustomResponse.generate_response(code=201, msg=response_data)
 
@@ -195,7 +200,6 @@ class ResendEmailVerificationCodeView(GenericAPIView):
 
 class SendNewEmailVerificationCodeView(GenericAPIView):
     serializer_class = SendNewEmailVerificationCodeSerializer
-    permission_classes = [IsAuthenticated]
 
     @extend_schema(
         summary="Resend email change verification code",
@@ -299,3 +303,113 @@ class ChangeEmailView(GenericAPIView):
             "message": "Email changed successfully.",
         }
         return CustomResponse.generate_response(code=200, msg=response_data)
+
+
+class LoginView(TokenObtainPairView):
+    serializer_class = TokenObtainSerializer
+    throttle_classes = [UserRateThrottle]
+
+    @staticmethod
+    def get_profile_serializer(user):
+        if isinstance(user, TenantProfile):
+            return TenantProfileSerializer(user)
+        elif isinstance(user, LandLordProfile):
+            return LandLordProfileSerializer(user)
+        else:
+            return None
+
+    @extend_schema(
+        summary="Login",
+        description=
+        """
+        This endpoint authenticates a registered and verified user and provides the necessary authentication tokens.
+        The request should include the following data:
+
+        - `email`: The user's email address.
+        - `password`: The user's password.
+
+        If the login is successful, the response will include the following data:
+
+        - `access`: The access token used for authorization.
+        - `refresh`: The refresh token used for obtaining a new access token.
+        - `data`: The profile data of the user
+        """
+
+    )
+    def post(self, request):
+        serializer = LoginSerializer(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"]
+        password = serializer.validated_data["password"]
+        user = authenticate(request, email=email, password=password)
+        if not user:
+            return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "Invalid credentials"})
+        if not user.email_verified:
+            return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "Verify your email first"})
+
+        profile_serializer = self.get_profile_serializer(user=user)
+        tokens = super().post(request).data
+
+        response_data = {"tokens": tokens, "profile_data": profile_serializer.data if profile_serializer else ""}
+        response_message = {
+            "code": 0, "message": "Logged in successfully",
+        }
+        return CustomResponse.generate_response(code=200, data=response_data, msg=response_message)
+
+
+class LogoutView(TokenBlacklistView):
+    serializer_class = TokenBlacklistSerializer
+
+    @extend_schema(
+        summary="Logout",
+        description=
+        """
+        This endpoint logs out an authenticated user by blacklisting their access token.
+        The request should include the following data:
+
+        - `refresh`: The refresh token used for authentication.
+
+        If the logout is successful, the response will include the following data:
+
+        - `message`: A success message indicating that the user has been logged out.
+        - `status`: The status of the request.
+        """
+    )
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data)
+        try:
+            serializer.is_valid(raise_exception=True)
+            return CustomResponse.generate_response(code=200, msg={"code": 0, "message": "Logged out successfully."})
+        except TokenError:
+            return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "Token is blacklisted."})
+
+
+class RefreshView(TokenRefreshView):
+    serializer_class = TokenRefreshSerializer
+
+    @extend_schema(
+        summary="Refresh token",
+        description=
+        """
+        This endpoint allows a user to refresh an expired access token.
+        The request should include the following data:
+
+        - `access`: The expired access token.
+
+        If the token refresh is successful, the response will include the following data:
+
+        - `message`: A success message indicating that the token has been refreshed.
+        - `token`: The new access token.
+        - `status`: The status of the request.
+        """
+
+    )
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        access_token = serializer.validated_data['access']
+        response_data = {
+            "code": 0,
+            "message": "Refreshed successfully",
+        }
+        return CustomResponse.generate_response(code=200, data={"token": access_token}, msg=response_data)
