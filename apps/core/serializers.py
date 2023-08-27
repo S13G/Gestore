@@ -76,3 +76,27 @@ class LandLordProfileSerializer(sr.Serializer):
 class LoginSerializer(CustomEmailSerializer):
     email = sr.CharField()
     password = sr.CharField(write_only=True)
+
+
+class ChangePasswordSerializer(sr.Serializer):
+    password = sr.CharField(max_length=50, min_length=6, write_only=True)
+    confirm_pass = sr.CharField(max_length=50, min_length=6, write_only=True)
+
+    def validate(self, attrs):
+        password = attrs.get('password')
+        confirm = attrs.get('confirm_pass')
+
+        if confirm != password:
+            raise CustomValidation(
+                {
+                    "code": 2,
+                    "message": "Passwords do not match",
+                    "status": "failed"
+                }
+            )
+
+        return attrs
+
+
+class RequestNewPasswordCodeSerializer(CustomEmailSerializer):
+    email = sr.CharField()

@@ -8,15 +8,17 @@ from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import status
 from rest_framework.generics import GenericAPIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.throttling import UserRateThrottle
+from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework_simplejwt.exceptions import TokenError
-from rest_framework_simplejwt.serializers import TokenObtainSerializer, TokenBlacklistSerializer, TokenRefreshSerializer
+from rest_framework_simplejwt.serializers import TokenBlacklistSerializer, \
+    TokenRefreshSerializer, TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenBlacklistView, TokenRefreshView
 
 from apps.common.responses import CustomResponse
 from apps.core.emails import send_otp_email
 from apps.core.models import TenantProfile, LandLordProfile
 from apps.core.serializers import *
+from utilities.encryption import decrypt_token_to_profile, encrypt_profile_to_token
 
 User = get_user_model()
 
@@ -306,8 +308,8 @@ class ChangeEmailView(GenericAPIView):
 
 
 class LoginView(TokenObtainPairView):
-    serializer_class = TokenObtainSerializer
-    throttle_classes = [UserRateThrottle]
+    serializer_class = TokenObtainPairSerializer
+    throttle_classes = [AnonRateThrottle]
 
     @staticmethod
     def get_profile_serializer(user):
@@ -320,21 +322,17 @@ class LoginView(TokenObtainPairView):
 
     @extend_schema(
         summary="Login",
-        description=
-        """
-        This endpoint authenticates a registered and verified user and provides the necessary authentication tokens.
-        The request should include the following data:
-
-        - `email`: The user's email address.
-        - `password`: The user's password.
-
-        If the login is successful, the response will include the following data:
-
-        - `access`: The access token used for authorization.
-        - `refresh`: The refresh token used for obtaining a new access token.
-        - `data`: The profile data of the user
-        """
-
+        description="This endpoint authenticates a registered and verified user and provides the necessary authentication tokens.",
+        request=LoginSerializer,
+        responses={
+            status.HTTP_200_OK: OpenApiResponse(
+                description="Logged in successfully",
+                response=LoginSerializer,
+            ),
+            status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+                description="Account not active or Invalid credentials",
+            ),
+        }
     )
     def post(self, request):
         serializer = LoginSerializer(data=self.request.data)
@@ -347,10 +345,12 @@ class LoginView(TokenObtainPairView):
         if not user.email_verified:
             return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "Verify your email first"})
 
-        profile_serializer = self.get_profile_serializer(user=user)
-        tokens = super().post(request).data
+        tokens_response = super().post(request)
 
-        response_data = {"tokens": tokens, "profile_data": profile_serializer.data if profile_serializer else ""}
+        profile_serializer = self.get_profile_serializer(user=user)
+
+        response_data = {"tokens": tokens_response.data,
+                         "profile_data": profile_serializer.data if profile_serializer else ""}
         response_message = {
             "code": 0, "message": "Logged in successfully",
         }
@@ -413,3 +413,179 @@ class RefreshView(TokenRefreshView):
             "message": "Refreshed successfully",
         }
         return CustomResponse.generate_response(code=200, data={"token": access_token}, msg=response_data)
+
+
+class RequestForgotPasswordCodeView(GenericAPIView):
+    serializer_class = RequestNewPasswordCodeSerializer
+    throttle_classes = [AnonRateThrottle]
+
+    @extend_schema(
+        summary="Request new password code for forgot password",
+        description=
+        """
+        This endpoint allows a user to request a verification code to reset their password if forgotten.
+        The request should include the following data:
+
+        - `email`: The user's email address.
+
+        If the request is successful, the response will include the following data:
+
+        - `message`: A success message indicating that the verification code has been sent.
+        - `status`: The status of the request.
+        """,
+        responses={
+            status.HTTP_404_NOT_FOUND: OpenApiResponse(
+                description="Account not found"
+            ),
+            status.HTTP_202_ACCEPTED: OpenApiResponse(
+                description="Password code sent successfully"
+            )
+        }
+
+    )
+    def post(self, request):
+        serializer = self.serializer_class(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        email = self.request.data.get('email')
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return CustomResponse.generate_response(code=404, msg={"code": 1, "message": "Account not found"})
+        send_otp_email(user, email)
+        return CustomResponse.generate_response(code=200, msg={"code": 0, "message": "Password code sent successfully"})
+
+
+class VerifyForgotPasswordCodeView(GenericAPIView):
+    serializer_class = VerifyEmailSerializer
+    throttle_classes = [AnonRateThrottle]
+
+    @extend_schema(
+        summary="Verify forgot password code for unauthenticated users",
+        description=
+        """
+        This endpoint allows a user to verify the verification code they got to reset the password if forgotten.
+        The user will be stored in the token which will be gotten to make sure it is the right user that is
+        changing his/her password
+
+        The request should include the following data:
+
+        - `email`: The user's email
+        - `otp`: The verification code sent to the user's email.
+
+        If the verification is successful, the response will include the following data:
+
+        - `message`: A success message indicating that the otp has been verified.
+        - `status`: The status of the request.
+        """,
+        responses={
+            status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+                description="OTP error"
+            ),
+            status.HTTP_404_NOT_FOUND: OpenApiResponse(
+                description="Account not found"
+            ),
+            status.HTTP_202_ACCEPTED: OpenApiResponse(
+                description="Otp verified successfully"
+            )
+        }
+
+    )
+    def post(self, request):
+        with transaction.atomic():
+            serializer = self.serializer_class(data=self.request.data)
+            serializer.is_valid(raise_exception=True)
+
+            email = self.request.data.get("email")
+            code = self.request.data.get("otp")
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                return CustomResponse.generate_response(code=404, msg={"code": 1, "message": "Account not found"})
+
+            if not code or not user.otp_secret:
+                response_data = {"code": 1, "message": "No OTP found for this account"}
+                return CustomResponse.generate_response(code=404, msg=response_data)
+
+            # Check if the OTP secret has expired (10 minutes interval)
+            current_time = timezone.now()
+            expiration_time = user.otp_secret.created + timedelta(minutes=10)
+            if current_time > expiration_time:
+                return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "OTP has expired"})
+
+            # Verify the OTP
+            totp = pyotp.TOTP(user.otp_secret.secret, interval=600)
+            if not totp.verify(code):
+                return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "Invalid OTP"})
+
+            token = encrypt_profile_to_token(user)  # Encrypt the user profile to a token.
+            response_data = {"code": 0, "message": "Otp verified successfully"}
+            return CustomResponse.generate_response(code=200, data={"token": token}, msg=response_data)
+
+
+class ChangeForgottenPasswordView(GenericAPIView):
+    serializer_class = ChangePasswordSerializer
+    throttle_classes = [AnonRateThrottle]
+
+    @extend_schema(
+        summary="Change password for forgotten password",
+        description=
+        """
+        This endpoint allows the unauthenticated user to change their password after requesting for a code.
+        The request should include the following data:
+
+        - `password`: The new password.
+        - `confirm_password`: The new password again.
+
+        If the password change is successful, the response will include the following data:
+
+        - `message`: A success message indicating that the password has been updated successfully.
+        - `status`: The status of  after requesting for a code.the request.
+        """
+    )
+    def post(self, request, *args, **kwargs):
+        with transaction.atomic():
+            token = self.kwargs.get('token')
+            if token is None:
+                return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "Token not provided"})
+            user = decrypt_token_to_profile(token)
+            serializer = self.serializer_class(data=self.request.data)
+            serializer.is_valid(raise_exception=True)
+
+            password = serializer.validated_data['password']
+            user.set_password(password)
+            user.save()
+
+            return CustomResponse.generate_response(code=200, msg={"code": 0, "message": "Password updated successful"})
+
+
+class ChangePasswordView(GenericAPIView):
+    permission_classes = (IsAuthenticated,)
+    serializer_class = ChangePasswordSerializer
+    throttle_classes = [UserRateThrottle]
+
+    @extend_schema(
+        summary="Change password for authenticated users",
+        description=
+        """
+        This endpoint allows the authenticated user to change their password.
+        The request should include the following data:
+
+        - `password`: The new password.
+        - `confirm_password`: The new password again.
+
+        If the password change is successful, the response will include the following data:
+
+        - `message`: A success message indicating that the password has been updated successfully.
+        - `status`: The status of the request.
+        """
+    )
+    def post(self, request, *args, **kwargs):
+        with transaction.atomic():
+            user = self.request.user
+            serializer = self.serializer_class(data=self.request.data)
+            serializer.is_valid(raise_exception=True)
+
+            password = serializer.validated_data['password']
+            user.set_password(password)
+            user.save()
+            return CustomResponse.generate_response(code=200, msg={"code": 0, "message": "Password updated successful"})
