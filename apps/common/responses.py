@@ -4,7 +4,7 @@ from rest_framework.response import Response
 class CustomResponse:
     ALL_SUCCESS_CODES = {
         200: "Fetched successfully",
-        201: "Added successfully",
+        201: "Created successfully",
         202: "Updated successfully",
         204: "Deleted successfully",
     }

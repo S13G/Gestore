@@ -52,23 +52,23 @@ class ChangeEmailSerializer(CustomEmailSerializer):
 
 
 class TenantProfileSerializer(sr.Serializer):
-    full_name = sr.CharField(source="user.get_full_name")
+    full_name = sr.CharField(source="user.get_full_name", read_only=True)
     avatar = sr.ImageField()
-    email = sr.EmailField(source="user.email")
-    email_verified = sr.BooleanField(source="user.email_verified")
+    email = sr.EmailField(source="user.email", read_only=True)
+    email_verified = sr.BooleanField(source="user.email_verified", read_only=True)
     date_of_birth = sr.DateField()
-    phone_number = sr.CharField(source="user.phone_number")
+    phone_number = sr.CharField(source="user.phone_number", read_only=True)
     emergency_phone_number = sr.CharField()
     occupation = sr.CharField()
     address = sr.CharField()
 
 
 class LandLordProfileSerializer(sr.Serializer):
-    full_name = sr.CharField(source="user.get_full_name")
+    full_name = sr.CharField(source="user.get_full_name", read_only=True)
     avatar = sr.ImageField()
-    email = sr.EmailField(source="user.email")
-    email_verified = sr.BooleanField(source="user.email_verified")
-    phone_number = sr.CharField(source="user.phone_number")
+    email = sr.EmailField(source="user.email", read_only=True)
+    email_verified = sr.BooleanField(source="user.email_verified", read_only=True)
+    phone_number = sr.CharField(source="user.phone_number", read_only=True)
     date_of_birth = sr.DateField()
     occupation = sr.CharField()
 

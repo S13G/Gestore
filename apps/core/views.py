@@ -22,8 +22,11 @@ from utilities.encryption import decrypt_token_to_profile, encrypt_profile_to_to
 
 User = get_user_model()
 
-
 # Create your views here.
+
+"""
+AUTHENTICATION AND OTHER AUTH OPTIONS
+"""
 
 
 class RegisterView(GenericAPIView):
@@ -41,11 +44,6 @@ class RegisterView(GenericAPIView):
         - `email`: The user's email address.
         - `phone_number`: The user's phone number.
         - `password`: The user's password.
-    
-        If the registration is successful, the response will include the following data:
-    
-        - `message`: A success message indicating that the user has been registered.
-        - `status`: The status of the request.
         """,
         responses={
             status.HTTP_201_CREATED: OpenApiResponse(
@@ -86,11 +84,6 @@ class VerifyEmailView(GenericAPIView):
 
         - `email_address`: The user's email address.
         - `otp`: The otp sent to the user's email address.
-
-        If the verification  is successful, the response will include the following data:
-
-        - `message`: A success message indicating that the user has been registered.
-        - `status`: The status of the request.
         """,
         responses={
             status.HTTP_200_OK: OpenApiResponse(
@@ -159,11 +152,6 @@ class ResendEmailVerificationCodeView(GenericAPIView):
         The request should include the following data:
 
         - `email_address`: The user's email address.
-
-        If the request is successful, the response will include the following data:
-
-        - `message`: A success message indicating that the user has been registered.
-        - `status`: The status of the request.
         """,
         responses={
             status.HTTP_200_OK: OpenApiResponse(
@@ -211,11 +199,6 @@ class SendNewEmailVerificationCodeView(GenericAPIView):
         The request should include the following data:
 
         - `email_address`: The user's new email address.
-
-        If the request is successful, the response will include the following data:
-
-        - `message`: A success message indicating that the user has been registered.
-        - `status`: The status of the request.
         """,
         responses={
             status.HTTP_200_OK: OpenApiResponse(
@@ -253,11 +236,6 @@ class ChangeEmailView(GenericAPIView):
 
         - `email_address`: The user's new email address.
         - `otp`: The code sent
-
-        If the request is successful, the response will include the following data:
-
-        - `message`: A success message indicating that the user has been registered.
-        - `status`: The status of the request.
         """,
         responses={
             status.HTTP_200_OK: OpenApiResponse(
@@ -313,10 +291,10 @@ class LoginView(TokenObtainPairView):
 
     @staticmethod
     def get_profile_serializer(user):
-        if isinstance(user, TenantProfile):
-            return TenantProfileSerializer(user)
-        elif isinstance(user, LandLordProfile):
-            return LandLordProfileSerializer(user)
+        if hasattr(user, "tenant_profile"):
+            return TenantProfileSerializer(user.tenant_profile)
+        elif hasattr(user, "landlord_profile"):
+            return LandLordProfileSerializer(user.landlord_profile)
         else:
             return None
 
@@ -368,15 +346,18 @@ class LogoutView(TokenBlacklistView):
         The request should include the following data:
 
         - `refresh`: The refresh token used for authentication.
-
-        If the logout is successful, the response will include the following data:
-
-        - `message`: A success message indicating that the user has been logged out.
-        - `status`: The status of the request.
-        """
+        """,
+        responses={
+            status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+                description="Token is blacklisted",
+            ),
+            status.HTTP_200_OK: OpenApiResponse(
+                description="Logged out successfully"
+            )
+        }
     )
-    def post(self, request, *args, **kwargs):
-        serializer = self.serializer_class(data=request.data)
+    def post(self, request):
+        serializer = self.serializer_class(data=self.request.data)
         try:
             serializer.is_valid(raise_exception=True)
             return CustomResponse.generate_response(code=200, msg={"code": 0, "message": "Logged out successfully."})
@@ -394,14 +375,13 @@ class RefreshView(TokenRefreshView):
         This endpoint allows a user to refresh an expired access token.
         The request should include the following data:
 
-        - `access`: The expired access token.
-
-        If the token refresh is successful, the response will include the following data:
-
-        - `message`: A success message indicating that the token has been refreshed.
-        - `token`: The new access token.
-        - `status`: The status of the request.
-        """
+        - `refresh`: The refresh token.
+        """,
+        responses={
+            status.HTTP_200_OK: OpenApiResponse(
+                description="Refreshed successfully",
+            ),
+        }
 
     )
     def post(self, request):
@@ -427,11 +407,6 @@ class RequestForgotPasswordCodeView(GenericAPIView):
         The request should include the following data:
 
         - `email`: The user's email address.
-
-        If the request is successful, the response will include the following data:
-
-        - `message`: A success message indicating that the verification code has been sent.
-        - `status`: The status of the request.
         """,
         responses={
             status.HTTP_404_NOT_FOUND: OpenApiResponse(
@@ -471,11 +446,6 @@ class VerifyForgotPasswordCodeView(GenericAPIView):
 
         - `email`: The user's email
         - `otp`: The verification code sent to the user's email.
-
-        If the verification is successful, the response will include the following data:
-
-        - `message`: A success message indicating that the otp has been verified.
-        - `status`: The status of the request.
         """,
         responses={
             status.HTTP_400_BAD_REQUEST: OpenApiResponse(
@@ -490,36 +460,36 @@ class VerifyForgotPasswordCodeView(GenericAPIView):
         }
 
     )
+    @transaction.atomic()
     def post(self, request):
-        with transaction.atomic():
-            serializer = self.serializer_class(data=self.request.data)
-            serializer.is_valid(raise_exception=True)
+        serializer = self.serializer_class(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
 
-            email = self.request.data.get("email")
-            code = self.request.data.get("otp")
-            try:
-                user = User.objects.get(email=email)
-            except User.DoesNotExist:
-                return CustomResponse.generate_response(code=404, msg={"code": 1, "message": "Account not found"})
+        email = self.request.data.get("email")
+        code = self.request.data.get("otp")
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return CustomResponse.generate_response(code=404, msg={"code": 1, "message": "Account not found"})
 
-            if not code or not user.otp_secret:
-                response_data = {"code": 1, "message": "No OTP found for this account"}
-                return CustomResponse.generate_response(code=404, msg=response_data)
+        if not code or not user.otp_secret:
+            response_data = {"code": 1, "message": "No OTP found for this account"}
+            return CustomResponse.generate_response(code=404, msg=response_data)
 
-            # Check if the OTP secret has expired (10 minutes interval)
-            current_time = timezone.now()
-            expiration_time = user.otp_secret.created + timedelta(minutes=10)
-            if current_time > expiration_time:
-                return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "OTP has expired"})
+        # Check if the OTP secret has expired (10 minutes interval)
+        current_time = timezone.now()
+        expiration_time = user.otp_secret.created + timedelta(minutes=10)
+        if current_time > expiration_time:
+            return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "OTP has expired"})
 
-            # Verify the OTP
-            totp = pyotp.TOTP(user.otp_secret.secret, interval=600)
-            if not totp.verify(code):
-                return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "Invalid OTP"})
+        # Verify the OTP
+        totp = pyotp.TOTP(user.otp_secret.secret, interval=600)
+        if not totp.verify(code):
+            return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "Invalid OTP"})
 
-            token = encrypt_profile_to_token(user)  # Encrypt the user profile to a token.
-            response_data = {"code": 0, "message": "Otp verified successfully"}
-            return CustomResponse.generate_response(code=200, data={"token": token}, msg=response_data)
+        token = encrypt_profile_to_token(user)  # Encrypt the user profile to a token.
+        response_data = {"code": 0, "message": "Otp verified successfully"}
+        return CustomResponse.generate_response(code=200, data={"token": token}, msg=response_data)
 
 
 class ChangeForgottenPasswordView(GenericAPIView):
@@ -535,27 +505,30 @@ class ChangeForgottenPasswordView(GenericAPIView):
 
         - `password`: The new password.
         - `confirm_password`: The new password again.
-
-        If the password change is successful, the response will include the following data:
-
-        - `message`: A success message indicating that the password has been updated successfully.
-        - `status`: The status of  after requesting for a code.the request.
-        """
+        """,
+        responses={
+            status.HTTP_200_OK: OpenApiResponse(
+                description="Password updated successfully",
+            ),
+            status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+                description="Token not provided"
+            )
+        }
     )
+    @transaction.atomic()
     def post(self, request, *args, **kwargs):
-        with transaction.atomic():
-            token = self.kwargs.get('token')
-            if token is None:
-                return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "Token not provided"})
-            user = decrypt_token_to_profile(token)
-            serializer = self.serializer_class(data=self.request.data)
-            serializer.is_valid(raise_exception=True)
+        token = self.kwargs.get('token')
+        if token is None:
+            return CustomResponse.generate_response(code=400, msg={"code": 2, "message": "Token not provided"})
+        user = decrypt_token_to_profile(token)
+        serializer = self.serializer_class(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
 
-            password = serializer.validated_data['password']
-            user.set_password(password)
-            user.save()
+        password = serializer.validated_data['password']
+        user.set_password(password)
+        user.save()
 
-            return CustomResponse.generate_response(code=200, msg={"code": 0, "message": "Password updated successful"})
+        return CustomResponse.generate_response(code=200, msg={"code": 0, "message": "Password updated successful"})
 
 
 class ChangePasswordView(GenericAPIView):
@@ -572,20 +545,87 @@ class ChangePasswordView(GenericAPIView):
 
         - `password`: The new password.
         - `confirm_password`: The new password again.
-
-        If the password change is successful, the response will include the following data:
-
-        - `message`: A success message indicating that the password has been updated successfully.
-        - `status`: The status of the request.
-        """
+        """,
+        responses={
+            status.HTTP_200_OK: OpenApiResponse(
+                description="Password updated successfully",
+            ),
+        }
     )
-    def post(self, request, *args, **kwargs):
-        with transaction.atomic():
-            user = self.request.user
-            serializer = self.serializer_class(data=self.request.data)
-            serializer.is_valid(raise_exception=True)
+    @transaction.atomic()
+    def post(self, request):
+        user = self.request.user
+        serializer = self.serializer_class(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
 
-            password = serializer.validated_data['password']
-            user.set_password(password)
-            user.save()
-            return CustomResponse.generate_response(code=200, msg={"code": 0, "message": "Password updated successful"})
+        password = serializer.validated_data['password']
+        user.set_password(password)
+        user.save()
+        return CustomResponse.generate_response(code=200, msg={"code": 0, "message": "Password updated successful"})
+
+
+"""
+PROFILE CREATION
+"""
+
+
+class CreateTenantProfileView(GenericAPIView):
+    serializer_class = TenantProfileSerializer
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(
+        summary="Create tenant profile",
+        description=
+        """
+        This endpoint allows a user to create a tenant profile.
+        """,
+        responses={
+            status.HTTP_409_CONFLICT: OpenApiResponse(
+                description="You already have an existing tenant profile",
+            ),
+        }
+    )
+    @transaction.atomic()
+    def post(self, request):
+        user = self.request.user
+        if hasattr(user, "tenant_profile"):
+            response_data = {"profile": self.serializer_class(user.tenant_profile).data}
+            response_msg = {"code": 3, "message": "You already have an existing tenant profile"}
+            return CustomResponse.generate_response(code=409, data=response_data, msg=response_msg)
+        serializer = self.serializer_class(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        created_profile = TenantProfile.objects.create(user=user, **serializer.validated_data)
+        profile = self.serializer_class(created_profile).data
+        return CustomResponse.generate_response(code=201, data={"profile": profile})
+
+
+
+class CreateLandlordProfileView(GenericAPIView):
+    serializer_class = TenantProfileSerializer
+    permission_classes = (IsAuthenticated,)
+
+    @extend_schema(
+        summary="Create landlord profile",
+        description=
+        """
+        This endpoint allows a user to create a landlord profile.
+        """,
+        responses={
+            status.HTTP_409_CONFLICT: OpenApiResponse(
+                description="You already have an existing landlord profile",
+            ),
+        }
+    )
+    @transaction.atomic()
+    def post(self, request):
+        user = self.request.user
+        if hasattr(user, "landlord_profile"):
+            response_data = {"profile": self.serializer_class(user.landlord_profile).data}
+            response_msg = {"code": 3, "message": "You already have an existing landlord profile"}
+            return CustomResponse.generate_response(code=409, data=response_data, msg=response_msg)
+        serializer = self.serializer_class(data=self.request.data)
+        serializer.is_valid(raise_exception=True)
+        created_profile = LandLordProfile.objects.create(user=user, **serializer.validated_data)
+        profile = self.serializer_class(created_profile).data
+        return CustomResponse.generate_response(code=201, data={"profile": profile})
+

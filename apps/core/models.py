@@ -57,6 +57,7 @@ class TenantProfile(BaseModel):
     def full_name(self):
         return self.user.get_full_name()
 
+    @property
     def profile_image(self):
         if self.avatar:
             return self.avatar.url
