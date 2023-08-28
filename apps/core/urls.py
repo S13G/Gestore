@@ -27,5 +27,4 @@ urlpatterns = [
     path('change/new-password', views.ChangePasswordView.as_view(), name="change_password"),
     path('create/tenant-profile', views.CreateTenantProfileView.as_view(), name="create_tenant_profile"),
     path('create/landlord-profile', views.CreateLandlordProfileView.as_view(), name="create_tenant_profile"),
-    # path()
 ]
