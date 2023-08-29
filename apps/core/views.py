@@ -47,7 +47,7 @@ class RegisterView(GenericAPIView):
         """,
         responses={
             status.HTTP_201_CREATED: OpenApiResponse(
-                description="Registered successfully. Check email for verification code, verification code for phone will be sent after email has been verified",
+                description="Registered successfully.",
                 response=RegisterSerializer
             ),
             status.HTTP_409_CONFLICT: OpenApiResponse(
@@ -64,7 +64,6 @@ class RegisterView(GenericAPIView):
         except IntegrityError:
             return CustomResponse.generate_response(code=409, msg={"code": 3, "message": "Email already exists"})
 
-        send_otp_email(user)
         response_data = {
             "code": 0,
             "message": "Registered successfully. Check email for verification code",
@@ -224,8 +223,8 @@ class SendNewEmailVerificationCodeView(GenericAPIView):
 
 
 class ChangeEmailView(GenericAPIView):
+    permission_classes = (IsAuthenticated,)
     serializer_class = ChangeEmailSerializer
-    permission_classes = [IsAuthenticated]
 
     @extend_schema(
         summary="Change account email address",
@@ -599,9 +598,8 @@ class CreateTenantProfileView(GenericAPIView):
         return CustomResponse.generate_response(code=201, data={"profile": profile})
 
 
-
 class CreateLandlordProfileView(GenericAPIView):
-    serializer_class = TenantProfileSerializer
+    serializer_class = LandLordProfileSerializer
     permission_classes = (IsAuthenticated,)
 
     @extend_schema(
@@ -628,4 +626,5 @@ class CreateLandlordProfileView(GenericAPIView):
         created_profile = LandLordProfile.objects.create(user=user, **serializer.validated_data)
         profile = self.serializer_class(created_profile).data
         return CustomResponse.generate_response(code=201, data={"profile": profile})
+
 
