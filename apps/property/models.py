@@ -20,7 +20,7 @@ class PropertyFacility(BaseModel):
     name = models.CharField(max_length=255)
 
     class Meta:
-        verbose_name_plural = "Property Facilities"
+        verbose_name_plural = "Property facilities"
 
     def __str__(self):
         return self.name
@@ -30,7 +30,7 @@ class PublicFacility(BaseModel):
     name = models.CharField(max_length=255)
 
     class Meta:
-        verbose_name_plural = "Public Facilities"
+        verbose_name_plural = "Public facilities"
 
     def __str__(self):
         return self.name
@@ -38,16 +38,20 @@ class PublicFacility(BaseModel):
 
 class Property(BaseModel):
     property_owner = models.ForeignKey(User, on_delete=models.CASCADE, related_name="owned_properties", null=True)
+    type = models.ForeignKey(PropertyType, on_delete=models.SET_NULL, related_name="properties", null=True)
     name = models.CharField(max_length=255, unique=True)
     rooms = models.PositiveIntegerField(default=0)
     address = models.CharField(max_length=255)
     country = CountryField()
-    home_facilities = models.ManyToManyField(PropertyFacility)
-    public_facilities = models.ManyToManyField(PublicFacility)
-    about = models.TextField()
+    home_facilities = models.ManyToManyField(PropertyFacility, blank=True)
+    public_facilities = models.ManyToManyField(PublicFacility, blank=True)
+    about = models.TextField(blank=True)
     advance_payment = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     full_payment = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     intro_video = models.FileField(upload_to="intro_videos", null=True, blank=True)
+
+    class Meta:
+        verbose_name_plural = 'Properties'
 
     def __str__(self):
         return f"{self.property_owner.get_full_name()} ---- {self.name}"
