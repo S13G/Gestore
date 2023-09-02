@@ -3,19 +3,19 @@ from rest_framework.response import Response
 
 class CustomResponse:
     ALL_SUCCESS_CODES = {
-        200: "Fetched successfully",
-        201: "Created successfully",
-        202: "Updated successfully",
-        204: "Deleted successfully",
+        200: {"code": 0, "message": "Fetched successfully"},
+        201: {"code": 0, "message": "Created successfully"},
+        202: {"code": 0, "message": "Updated successfully"},
+        204: {"code": 0, "message": "Deleted successfully"},
     }
 
     ALL_ERROR_CODES = {
-        404: "Resource not found",
-        400: "Validation error",
-        401: "Authorization credentials not provided",
-        403: "Access denied",
-        500: "Something went wrong",
-        409: "Already exists"
+        404: {"code": 1, "message": "Resource not found"},
+        400: {"code": 2, "message": "Bad request"},
+        401: {"code": 4, "message": "Authorization credentials not provided"},
+        403: {"code": 5, "message": "Access denied"},
+        500: {"code": 6, "message": "Something went wrong"},
+        409: {"code": 3, "message": "Already exists"},
     }
 
     @classmethod

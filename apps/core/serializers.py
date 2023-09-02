@@ -62,6 +62,33 @@ class TenantProfileSerializer(sr.Serializer):
     occupation = sr.CharField()
     address = sr.CharField()
 
+    def get_fields(self):
+        fields = super().get_fields()
+        if self.context['request'].method == 'PATCH':
+            fields['full_name'].read_only = False
+            fields['phone_number'].read_only = False
+        return fields
+
+    def update(self, instance, validated_data):
+        user = instance.user
+        full_name = validated_data.get('full_name')
+        phone_number = validated_data.get('phone_number')
+
+        for key, value in validated_data.items():
+            setattr(instance, key, value)
+
+        if full_name:
+            first_name, *last_name_parts = full_name.split(' ')
+            user.first_name = first_name
+            user.last_name = ' '.join(last_name_parts)
+
+        if phone_number:
+            user.phone_number = phone_number
+
+        user.save()
+        instance.save()
+        return instance
+
 
 class LandLordProfileSerializer(sr.Serializer):
     full_name = sr.CharField(source="user.get_full_name", read_only=True)
@@ -71,6 +98,33 @@ class LandLordProfileSerializer(sr.Serializer):
     phone_number = sr.CharField(source="user.phone_number", read_only=True)
     date_of_birth = sr.DateField()
     occupation = sr.CharField()
+
+    def get_fields(self):
+        fields = super().get_fields()
+        if self.context['request'].method == 'PATCH':
+            fields['full_name'].read_only = False
+            fields['phone_number'].read_only = False
+        return fields
+
+    def update(self, instance, validated_data):
+        user = instance.user
+        full_name = validated_data.get('full_name')
+        phone_number = validated_data.get('phone_number')
+
+        for key, value in validated_data.items():
+            setattr(instance, key, value)
+
+        if full_name:
+            first_name, *last_name_parts = full_name.split(' ')
+            user.first_name = first_name
+            user.last_name = ' '.join(last_name_parts)
+
+        if phone_number:
+            user.phone_number = phone_number
+
+        user.save()
+        instance.save()
+        return instance
 
 
 class LoginSerializer(CustomEmailSerializer):

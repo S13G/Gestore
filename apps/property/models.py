@@ -49,6 +49,7 @@ class Property(BaseModel):
     advance_payment = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     full_payment = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(0)])
     intro_video = models.FileField(upload_to="intro_videos", null=True, blank=True)
+    rented = models.BooleanField(default=False)
 
     class Meta:
         verbose_name_plural = 'Properties'

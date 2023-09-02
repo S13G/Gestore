@@ -14,6 +14,7 @@ from rest_framework_simplejwt.serializers import TokenBlacklistSerializer, \
     TokenRefreshSerializer, TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenBlacklistView, TokenRefreshView
 
+from apps.common.permissions import IsAuthenticatedTenant, IsAuthenticatedLandLord
 from apps.common.responses import CustomResponse
 from apps.core.emails import send_otp_email
 from apps.core.models import TenantProfile, LandLordProfile
@@ -51,7 +52,7 @@ class RegisterView(GenericAPIView):
                 response=RegisterSerializer
             ),
             status.HTTP_409_CONFLICT: OpenApiResponse(
-                description="Email already exists"
+                description="Email already exist"
             )
         }
     )
@@ -66,7 +67,7 @@ class RegisterView(GenericAPIView):
 
         response_data = {
             "code": 0,
-            "message": "Registered successfully. Check email for verification code",
+            "message": "Registered successfully.",
         }
         return CustomResponse.generate_response(code=201, msg=response_data)
 
@@ -628,3 +629,153 @@ class CreateLandlordProfileView(GenericAPIView):
         return CustomResponse.generate_response(code=201, data={"profile": profile})
 
 
+class RetrieveUpdateDeleteTenantProfileView(GenericAPIView):
+    permission_classes = (IsAuthenticatedTenant,)
+    serializer_class = TenantProfileSerializer
+
+    @extend_schema(
+        summary="Retrieve tenant profile",
+        description=
+        """
+        This endpoint allows a user to retrieve his/her tenant profile.
+        """,
+        responses={
+            status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+                description="Provide profile id"
+            ),
+            status.HTTP_200_OK: OpenApiResponse(
+                description="Fetched successfully"
+            )
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        profile_id = self.kwargs.get('profile_id')
+        if profile_id is None:
+            return CustomResponse.generate_response(code=400)
+        tenant_profile = TenantProfile.objects.get(id=profile_id)
+        serialized_data = TenantProfileSerializer(tenant_profile).data
+        return CustomResponse.generate_response(code=200, data=serialized_data)
+
+    @extend_schema(
+        summary="Update tenant profile",
+        description=
+        """
+        This endpoint allows a user to update his/her tenant profile.
+        """,
+        responses={
+            status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+                description="Provide profile id"
+            ),
+            status.HTTP_202_ACCEPTED: OpenApiResponse(
+                description="Updated successfully"
+            )
+        }
+    )
+    def patch(self, request, *args, **kwargs):
+        profile_id = self.kwargs.get('profile_id')
+        if profile_id is None:
+            return CustomResponse.generate_response(code=400)
+        tenant_profile = TenantProfile.objects.get(id=profile_id)
+        update_profile = self.serializer_class(tenant_profile, data=self.request.data, partial=True,
+                                               context={"request": request})
+        update_profile.is_valid(raise_exception=True)
+        updated = self.serializer_class(update_profile.save()).data
+        return CustomResponse.generate_response(code=202, data=updated)
+
+    @extend_schema(
+        summary="Delete tenant profile",
+        description=
+        """
+        This endpoint allows a user to delete his/her tenant profile.
+        """,
+        responses={
+            status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+                description="Provide profile id"
+            ),
+            status.HTTP_204_NO_CONTENT: OpenApiResponse(
+                description="Fetched successfully"
+            )
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        profile_id = self.kwargs.get('profile_id')
+        if profile_id is None:
+            return CustomResponse.generate_response(code=400)
+        TenantProfile.objects.get(id=profile_id).delete()
+        return CustomResponse.generate_response(code=204)
+
+
+class RetrieveUpdateDeleteLandLordProfileView(GenericAPIView):
+    permission_classes = (IsAuthenticatedLandLord,)
+    serializer_class = LandLordProfileSerializer
+
+    @extend_schema(
+        summary="Retrieve landlord profile",
+        description=
+        """
+        This endpoint allows a user to retrieve his/her landlord profile.
+        """,
+        responses={
+            status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+                description="Provide profile id"
+            ),
+            status.HTTP_200_OK: OpenApiResponse(
+                description="Fetched successfully"
+            )
+        }
+    )
+    def get(self, request, *args, **kwargs):
+        profile_id = self.kwargs.get('profile_id')
+        if profile_id is None:
+            return CustomResponse.generate_response(code=400)
+        landlord_profile = LandLordProfile.objects.get(id=profile_id)
+        serialized_data = LandLordProfileSerializer(landlord_profile).data
+        return CustomResponse.generate_response(code=200, data=serialized_data)
+
+    @extend_schema(
+        summary="Update landlord profile",
+        description=
+        """
+        This endpoint allows a user to update his/her landlord profile.
+        """,
+        responses={
+            status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+                description="Provide profile id"
+            ),
+            status.HTTP_202_ACCEPTED: OpenApiResponse(
+                description="Updated successfully"
+            )
+        }
+    )
+    def patch(self, request, *args, **kwargs):
+        profile_id = self.kwargs.get('profile_id')
+        if profile_id is None:
+            return CustomResponse.generate_response(code=400)
+        landlord_profile = LandLordProfile.objects.get(id=profile_id)
+        update_profile = self.serializer_class(landlord_profile, data=self.request.data, partial=True,
+                                               context={"request": request})
+        update_profile.is_valid(raise_exception=True)
+        updated = self.serializer_class(update_profile.save()).data
+        return CustomResponse.generate_response(code=202, data=updated)
+
+    @extend_schema(
+        summary="Delete landlord profile",
+        description=
+        """
+        This endpoint allows a user to delete his/her landlord profile.
+        """,
+        responses={
+            status.HTTP_400_BAD_REQUEST: OpenApiResponse(
+                description="Provide profile id"
+            ),
+            status.HTTP_204_NO_CONTENT: OpenApiResponse(
+                description="Deleted successfully"
+            )
+        }
+    )
+    def delete(self, request, *args, **kwargs):
+        profile_id = self.kwargs.get('profile_id')
+        if profile_id is None:
+            return CustomResponse.generate_response(code=400)
+        LandLordProfile.objects.get(id=profile_id).delete()
+        return CustomResponse.generate_response(code=204)

@@ -105,12 +105,13 @@ class PropertyAdmin(admin.ModelAdmin):
                         "advance_payment",
                         "full_payment",
                         "intro_video",
+                        "rented",
                     )
             }
         ),
     )
     inlines = (PropertyImageInline,)
-    list_display = ('owner', 'property_name', 'rooms', 'country', 'advance_payment', 'full_payment',)
+    list_display = ('owner', 'property_name', 'rooms', 'country', 'advance_payment', 'full_payment', 'rented',)
     list_per_page = 20
     list_select_related = ('property_owner', 'type',)
     ordering = ('name', 'rooms', 'country',)

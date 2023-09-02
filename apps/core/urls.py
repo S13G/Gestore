@@ -23,8 +23,14 @@ urlpatterns = [
          name="request_forgotten_password_code"),
     path('verify/forgot-password/code', views.VerifyForgotPasswordCodeView.as_view(),
          name="verify_forgot_password_code"),
-    path('change/forgot-password/<str:token>', views.ChangeForgottenPasswordView.as_view(), name="change_forgot_password"),
+    path('change/forgot-password/<str:token>', views.ChangeForgottenPasswordView.as_view(),
+         name="change_forgot_password"),
     path('change/new-password', views.ChangePasswordView.as_view(), name="change_password"),
     path('create/tenant-profile', views.CreateTenantProfileView.as_view(), name="create_tenant_profile"),
     path('create/landlord-profile', views.CreateLandlordProfileView.as_view(), name="create_tenant_profile"),
+    path('landlord_profile/<str:profile_id>/details', views.RetrieveUpdateDeleteLandLordProfileView.as_view(),
+         name="get_update_delete_landlord_profile"),
+    path('tenant_profile/<str:profile_id>/details', views.RetrieveUpdateDeleteTenantProfileView.as_view(),
+         name="get_update_delete_tenant_profile"),
+
 ]

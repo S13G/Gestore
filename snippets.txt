@@ -9,3 +9,6 @@
             self.email_changed = False
 
         super().save(*args, **kwargs)
+
+
+validators=[FileExtensionValidator(['mp4', 'mov', 'mkv', 'avi'])]
