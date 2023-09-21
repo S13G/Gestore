@@ -26,11 +26,11 @@ User = get_user_model()
 # Create your views here.
 
 """
-AUTHENTICATION AND OTHER AUTH OPTIONS
+AUTHENTICATION AND OTHER AUTHORIZATION OPTIONS 
 """
 
 
-class RegisterView(GenericAPIView):
+class RegisterView(GenericAPIView) :
     serializer_class = RegisterSerializer
 
     @extend_schema(
